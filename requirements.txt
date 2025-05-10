@@ -3,3 +3,4 @@ requests
 ckiptagger
 numpy
 opencc-python-reimplemented
+
