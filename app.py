@@ -7,25 +7,34 @@ from opencc import OpenCC
 
 app = Flask(__name__)
 MODEL_DIR = "./data"
-MODEL_ZIP_URL = "https://github.com/lineger/ckip_model/releases/download/v1.0/ckip_model.zip"
-MODEL_ZIP_PATH = "ckip_model.zip"
+MODEL_ZIP_URL = "https://github.com/lineger/ckip-api/releases/download/v1.0/ckip_data.zip"
+MODEL_ZIP_PATH = "ckip_data.zip"
 
 cc = OpenCC('t2s')
 
+# 只解壓、避免佔記憶體初始化過早
 if not os.path.exists(MODEL_DIR):
     print("[下載] 開始下載 Ckip 模型 zip...")
-    r = requests.get(MODEL_ZIP_URL)
+    r = requests.get(MODEL_ZIP_URL, stream=True)
     with open(MODEL_ZIP_PATH, "wb") as f:
-        f.write(r.content)
+        for chunk in r.iter_content(chunk_size=8192):
+            f.write(chunk)
     print("[解壓] 解壓中...")
     with zipfile.ZipFile(MODEL_ZIP_PATH, 'r') as zip_ref:
         zip_ref.extractall(MODEL_DIR)
     os.remove(MODEL_ZIP_PATH)
     print("[完成] 模型已下載並解壓至", MODEL_DIR)
 
-ws = WS(MODEL_DIR)
-pos = POS(MODEL_DIR)
-ner = NER(MODEL_DIR)
+ws, pos, ner = None, None, None
+
+@app.before_first_request
+def load_model():
+    global ws, pos, ner
+    print("[初始化] 載入模型中...")
+    ws = WS(MODEL_DIR)
+    pos = POS(MODEL_DIR)
+    ner = NER(MODEL_DIR)
+    print("[完成] 模型已初始化")
 
 @app.route("/segment", methods=["POST"])
 def segment():
