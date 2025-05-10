@@ -1,0 +1,4 @@
+flask
+requests
+ckiptagger
+opencc-python-reimplemented
